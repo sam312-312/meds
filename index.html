@@ -70,6 +70,7 @@ button.chip{cursor:pointer;min-height:40px}
 
   <h2>إضافة دواء</h2>
   <form id="f">
+    <label>لغة النص على العلبة<select id="lang"><option value="eng">إنجليزي</option><option value="ara">عربي</option></select></label>
     <button type="button" id="scan">📷 مسح علبة الدواء بالكاميرا</button>
     <input type="file" id="img" accept="image/*" capture="environment" hidden>
     <p class="note" id="scanmsg" style="margin:0" role="status"></p>
@@ -216,13 +217,24 @@ function chipBtn(t,f){
   const b=document.createElement('button');b.type='button';b.className='chip';
   b.textContent=(f==='d'?'جرعة: ':'')+t;b.onclick=()=>{$(f).value=t};$('cands').appendChild(b);
 }
-function showCands(text){
+function showCands(text,all){
   const msg=$('scanmsg');
   const lines=[...new Set(text.split('\n').map(l=>l.replace(/[^\p{L}\p{N}\s.\-\/%]/gu,' ').replace(/\s+/g,' ').trim()).filter(l=>l.length>=3&&l.length<=40&&/\p{L}{3}/u.test(l)))].slice(0,8);
-  const doses=[...new Set((text.match(/\d+(?:[.,]\d+)?\s?(?:mg|mcg|g|ml|iu|مجم|ملغ|ملجم)/gi)||[]).map(x=>x.trim()))].slice(0,4);
+  const doses=[...new Set(((all||text).match(/\d+(?:[.,]\d+)?\s?(?:mg|mcg|g|ml|iu|مجم|ملغ|ملجم)/gi)||[]).map(x=>x.trim()))].slice(0,4);
   if(!lines.length&&!doses.length){msg.textContent='لم أجد نصًا واضحًا. صوّر الاسم بإضاءة جيدة أو اكتبه يدويًا.';return}
   msg.textContent='اضغط على الاسم الصحيح ليُضاف في الحقل، وراجعه قبل الحفظ.';
   lines.forEach(l=>chipBtn(l,'n'));doses.forEach(d=>chipBtn(d,'d'));
+}
+function prep(cv){
+  const c=cv.getContext('2d'),im=c.getImageData(0,0,cv.width,cv.height),d=im.data,n=cv.width*cv.height;
+  const g=new Uint8Array(n),h=new Array(256).fill(0);
+  for(let i=0;i<n;i++){const v=(d[i*4]*.299+d[i*4+1]*.587+d[i*4+2]*.114)|0;g[i]=v;h[v]++}
+  let lo=0,hi=255,s=0;
+  for(let v=0;v<256;v++){s+=h[v];if(s>n*.02){lo=v;break}}
+  s=0;for(let v=255;v>=0;v--){s+=h[v];if(s>n*.02){hi=v;break}}
+  const r=Math.max(1,hi-lo);
+  for(let i=0;i<n;i++){const v=Math.max(0,Math.min(255,(g[i]-lo)*255/r));d[i*4]=d[i*4+1]=d[i*4+2]=v}
+  c.putImageData(im,0,0);
 }
 $('scan').onclick=()=>$('img').click();
 $('img').onchange=async e=>{
@@ -237,8 +249,14 @@ $('img').onchange=async e=>{
     msg.textContent='جارٍ تحميل أداة القراءة (أول مرة فقط)...';
     await loadTes();
     msg.textContent='جارٍ قراءة النص من العلبة...';
-    const r=await Tesseract.recognize(cv,'eng+ara');
-    showCands(r.data.text);
+    prep(cv);
+    const w=await Tesseract.createWorker($('lang').value);
+    await w.setParameters({tessedit_pageseg_mode:'11'});
+    const r=await w.recognize(cv);
+    await w.terminate();
+    const hasL=Array.isArray(r.data.lines)&&r.data.lines.length>0;
+    const good=hasL?r.data.lines.filter(l=>l.confidence>=60).map(l=>l.text).join('\n'):r.data.text;
+    showCands(good,r.data.text);
   }catch(err){msg.textContent='تعذّرت قراءة الصورة. تأكد من الاتصال بالإنترنت أو اكتب الاسم يدويًا.'}
   e.target.value='';
 };
