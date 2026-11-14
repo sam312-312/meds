@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="أدويتي">
+<meta name="theme-color" content="#0e7c86">
+<title>أدويتي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#14263a;--mute:#5d7285;--line:#d5e0e7;--teal:#0e7c86;--ok:#2e8b57;--skip:#b4690e;--okbg:#e3f3ea;--skipbg:#fbefdc}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1b26;--card:#172635;--ink:#e6eef4;--mute:#97aab9;--line:#294155;--teal:#4fc0ca;--ok:#6fd09a;--skip:#f0b25e;--okbg:#17372a;--skipbg:#3a2c14}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans Arabic",system-ui,-apple-system,sans-serif;line-height:1.6;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+main{max-width:560px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:26px;margin:8px 0 2px}
+h2{font-size:17px;margin:28px 0 10px}
+.date{color:var(--mute);margin:0 0 16px}
+.ring{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 16px}
+.ring b{font-size:30px;color:var(--teal)}
+.bar{height:8px;background:var(--line);border-radius:8px;overflow:hidden;flex:1}
+.bar i{display:block;height:100%;background:var(--teal);width:0;transition:width .3s}
+.dose{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px}
+.dose.taken{background:var(--okbg);border-color:var(--ok)}
+.dose.skipped{background:var(--skipbg);border-color:var(--skip)}
+.time{font-weight:700;font-size:18px;min-width:58px;color:var(--teal)}
+.info{flex:1}.info small{color:var(--mute);display:block}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 12px;min-height:40px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.primary{background:var(--teal);color:#fff;border-color:var(--teal);font-weight:700}
+@media (prefers-color-scheme:dark){.primary{color:#06222a}}
+.ok{background:var(--ok);color:#fff;border-color:var(--ok);font-weight:700}
+@media (prefers-color-scheme:dark){.ok{color:#08241a}}
+.row{display:flex;gap:6px}
+.empty{color:var(--mute);padding:14px;border:1px dashed var(--line);border-radius:14px}
+form{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;display:grid;gap:10px}
+label{display:grid;gap:4px;font-size:14px;color:var(--mute)}
+input{font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);min-height:44px}
+.times{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:4px 12px;display:inline-flex;gap:8px;align-items:center}
+.chip button{border:0;background:none;padding:0;min-height:0;color:var(--mute)}
+.med{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.note{font-size:13px;color:var(--mute);margin-top:10px}
+.week{display:flex;gap:6px;justify-content:space-between}
+.day{flex:1;text-align:center;font-size:12px;color:var(--mute)}
+.day div{height:44px;background:var(--line);border-radius:8px;position:relative;overflow:hidden;margin-bottom:4px}
+.day div i{position:absolute;bottom:0;left:0;right:0;background:var(--ok)}
+[hidden]{display:none!important}
+select{font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);min-height:44px}
+select:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+button.chip{cursor:pointer;min-height:40px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <h1>أدويتي</h1>
+  <p class="date" id="date"></p>
+  <div class="ring"><b id="pct">0%</b><div style="flex:1"><div class="bar"><i id="fill"></i></div><small id="sum" style="color:var(--mute)"></small></div></div>
+
+  <h2>جرعات اليوم</h2>
+  <div id="today"></div>
+
+  <h2>الالتزام في آخر 7 أيام</h2>
+  <div class="week" id="week"></div>
+
+  <h2>إضافة دواء</h2>
+  <form id="f">
+    <button type="button" id="scan">📷 مسح علبة الدواء بالكاميرا</button>
+    <input type="file" id="img" accept="image/*" capture="environment" hidden>
+    <p class="note" id="scanmsg" style="margin:0" role="status"></p>
+    <div class="times" id="cands"></div>
+    <label>اسم الدواء<input id="n" required autocomplete="off"></label>
+    <label>الجرعة (مثال: حبة واحدة)<input id="d" autocomplete="off"></label>
+    <label>عدد الجرعات في اليوم
+      <select id="fq"><option value="0">أحدد الأوقات بنفسي</option><option value="12">كل 12 ساعة (مرتان)</option><option value="8">كل 8 ساعات (3 مرات)</option><option value="6">كل 6 ساعات (4 مرات)</option></select>
+    </label>
+    <label><span id="tl">مواعيد الجرعات</span>
+      <span class="times"><input type="time" id="t" value="08:00"><button type="button" id="addt">إضافة الوقت</button></span>
+    </label>
+    <div class="times" id="chips"></div>
+    <label>تكرار الأيام
+      <select id="ev"><option value="1">كل يوم</option><option value="2">يوم بعد يوم (كل يومين)</option><option value="3">كل 3 أيام</option><option value="7">كل أسبوع</option></select>
+    </label>
+    <label>تاريخ أول جرعة<input type="date" id="sd"></label>
+    <button class="primary" type="submit">حفظ الدواء</button>
+  </form>
+
+  <h2>أدويتي</h2>
+  <div id="meds"></div>
+
+  <h2>تذكيرات على الآيفون</h2>
+  <button class="primary" id="ics">تنزيل ملف التذكيرات</button>
+  <p class="note">افتح الملف المُنزَّل لإضافة تذكيرات يومية متكررة إلى تطبيق التقويم، فتصلك التنبيهات حتى لو كان هذا التطبيق مغلقًا. عند تعديل الأدوية احذف التذكيرات القديمة من التقويم ثم نزّل الملف من جديد.</p>
+  <p class="note">هذا التطبيق للتذكير والتسجيل فقط ولا يغني عن استشارة الطبيب أو الصيدلي. بياناتك محفوظة على هذا الجهاز فقط.</p>
+</main>
+<script>
+const K='meds-app-v1';
+let S={meds:[],logs:{}};
+try{const r=localStorage.getItem(K);if(r)S=JSON.parse(r)}catch(e){}
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,'0');
+const key=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let draft=[];
+
+const dn=s=>{const[a,b,c]=s.split('-').map(Number);return Math.round(Date.UTC(a,b-1,c)/864e5)};
+const due=(m,dk)=>{if(!m.start)return true;const x=dn(dk)-dn(m.start);return x>=0&&x%(m.every||1)===0};
+function slots(dk){return S.meds.filter(m=>due(m,dk)).flatMap(m=>m.times.map(t=>({m,t}))).sort((a,b)=>a.t.localeCompare(b.t))}
+const evLabel=n=>n==1?'كل يوم':n==2?'يوم بعد يوم':n==7?'كل أسبوع':'كل '+n+' أيام';
+function lk(day,m,t){return day+'|'+m.id+'|'+t}
+
+function render(){
+  const now=new Date(),today=key(now);
+  $('date').textContent=now.toLocaleDateString('ar-SA',{weekday:'long',day:'numeric',month:'long'});
+  const sl=slots(today);
+  let taken=0;
+  $('today').innerHTML=sl.length?'':'<div class="empty">'+(S.meds.length?'لا توجد جرعات مجدولة اليوم.':'لا توجد جرعات بعد. أضف دواءً من النموذج أدناه.')+'</div>';
+  sl.forEach(({m,t})=>{
+    const st=S.logs[lk(today,m,t)];
+    if(st==='taken')taken++;
+    const el=document.createElement('div');
+    el.className='dose '+(st||'');
+    el.innerHTML='<span class="time">'+t+'</span><span class="info">'+esc(m.name)+'<small>'+esc(m.dose||'')+'</small></span>'+
+      '<span class="row"><button class="'+(st==='taken'?'ok':'')+'" data-a="taken">'+(st==='taken'?'تم ✓':'أخذتها')+'</button><button data-a="skipped">'+(st==='skipped'?'تخطيتها':'تخطي')+'</button></span>';
+    el.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      const k=lk(today,m,t);
+      if(S.logs[k]===b.dataset.a)delete S.logs[k];else S.logs[k]=b.dataset.a;
+      save();render();
+    });
+    $('today').appendChild(el);
+  });
+  const p=sl.length?Math.round(taken/sl.length*100):0;
+  $('pct').textContent=p+'%';$('fill').style.width=p+'%';
+  $('sum').textContent=sl.length?('أخذت '+taken+' من '+sl.length+' جرعات اليوم'):'';
+
+  const wk=$('week');wk.innerHTML='';
+  for(let i=6;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);const dk=key(d);
+    const dsl=slots(dk);
+    const tk=dsl.filter(({m,t})=>S.logs[lk(dk,m,t)]==='taken').length;
+    const h=dsl.length?Math.round(tk/dsl.length*100):0;
+    const c=document.createElement('div');c.className='day';
+    c.innerHTML='<div><i style="height:'+h+'%"></i></div>'+d.toLocaleDateString('ar-SA',{weekday:'short'});
+    wk.appendChild(c);
+  }
+
+  $('meds').innerHTML=S.meds.length?'':'<div class="empty">لم تضف أي دواء.</div>';
+  S.meds.forEach(m=>{
+    const el=document.createElement('div');el.className='med';
+    el.innerHTML='<span>'+esc(m.name)+'<small style="display:block;color:var(--mute)">'+esc(m.dose||'')+' · '+m.times.join('، ')+' · '+evLabel(m.every||1)+'</small></span><button>حذف</button>';
+    el.querySelector('button').onclick=()=>{
+      if(confirm('حذف '+m.name+'؟')){S.meds=S.meds.filter(x=>x.id!==m.id);save();render()}
+    };
+    $('meds').appendChild(el);
+  });
+  $('chips').innerHTML='';
+  draft.forEach(t=>{
+    const c=document.createElement('span');c.className='chip';
+    c.innerHTML=t+'<button type="button" aria-label="إزالة">✕</button>';
+    c.querySelector('button').onclick=()=>{draft=draft.filter(x=>x!==t);render()};
+    $('chips').appendChild(c);
+  });
+}
+
+$('addt').onclick=()=>{const t=$('t').value;if(t&&!draft.includes(t)){draft.push(t);draft.sort()}render()};
+$('f').onsubmit=e=>{
+  e.preventDefault();
+  const f=+$('fq').value;let times;
+  if(f){
+    if(!$('t').value)return;
+    const [h,mi]=$('t').value.split(':').map(Number);
+    times=[];for(let i=0;i<24/f;i++)times.push(pad((h+i*f)%24)+':'+pad(mi));
+    times.sort();
+  }else{
+    if(!draft.length&&$('t').value)draft=[$('t').value];
+    times=draft.slice();
+  }
+  if(!times.length)return;
+  S.meds.push({id:Date.now().toString(36),name:$('n').value.trim(),dose:$('d').value.trim(),times,every:+$('ev').value,start:$('sd').value||key(new Date())});
+  draft=[];$('n').value='';$('d').value='';$('cands').innerHTML='';$('scanmsg').textContent='';save();render();
+};
+
+$('ics').onclick=()=>{
+  if(!S.meds.length){alert('أضف دواءً أولًا.');return}
+  const d=new Date(),ds=d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate());
+  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//MedTracker//AR//EN','CALSCALE:GREGORIAN'];
+  S.meds.forEach(m=>m.times.forEach(t=>{
+    const tt=t.replace(':','')+'00',sd=(m.start||key(new Date())).replace(/-/g,'');
+    L.push('BEGIN:VEVENT','UID:'+m.id+'-'+tt+'@medtracker','DTSTAMP:'+ds+'T000000Z',
+      'DTSTART:'+sd+'T'+tt,'DURATION:PT10M','RRULE:FREQ=DAILY;INTERVAL='+(m.every||1),
+      'SUMMARY:💊 '+m.name.replace(/[,;\n]/g,' ')+(m.dose?' - '+m.dose.replace(/[,;\n]/g,' '):''),
+      'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:موعد الدواء','TRIGGER:PT0M','END:VALARM','END:VEVENT');
+  }));
+  L.push('END:VCALENDAR');
+  const blob=new Blob([L.join('\r\n')],{type:'text/calendar'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='medication-reminders.ics';
+  document.body.appendChild(a);a.click();a.remove();
+};
+$('sd').value=key(new Date());
+$('fq').onchange=()=>{const c=$('fq').value==='0';$('addt').hidden=!c;$('chips').hidden=!c;$('tl').textContent=c?'مواعيد الجرعات':'وقت أول جرعة'};
+
+let tesLoad;
+const loadTes=()=>tesLoad||(tesLoad=new Promise((ok,no)=>{
+  if(window.Tesseract)return ok();
+  const s=document.createElement('script');
+  s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+  s.onload=ok;s.onerror=()=>{tesLoad=null;no()};document.head.appendChild(s);
+}));
+function chipBtn(t,f){
+  const b=document.createElement('button');b.type='button';b.className='chip';
+  b.textContent=(f==='d'?'جرعة: ':'')+t;b.onclick=()=>{$(f).value=t};$('cands').appendChild(b);
+}
+function showCands(text){
+  const msg=$('scanmsg');
+  const lines=[...new Set(text.split('\n').map(l=>l.replace(/[^\p{L}\p{N}\s.\-\/%]/gu,' ').replace(/\s+/g,' ').trim()).filter(l=>l.length>=3&&l.length<=40&&/\p{L}{3}/u.test(l)))].slice(0,8);
+  const doses=[...new Set((text.match(/\d+(?:[.,]\d+)?\s?(?:mg|mcg|g|ml|iu|مجم|ملغ|ملجم)/gi)||[]).map(x=>x.trim()))].slice(0,4);
+  if(!lines.length&&!doses.length){msg.textContent='لم أجد نصًا واضحًا. صوّر الاسم بإضاءة جيدة أو اكتبه يدويًا.';return}
+  msg.textContent='اضغط على الاسم الصحيح ليُضاف في الحقل، وراجعه قبل الحفظ.';
+  lines.forEach(l=>chipBtn(l,'n'));doses.forEach(d=>chipBtn(d,'d'));
+}
+$('scan').onclick=()=>$('img').click();
+$('img').onchange=async e=>{
+  const file=e.target.files[0];if(!file)return;
+  const msg=$('scanmsg');$('cands').innerHTML='';
+  try{
+    msg.textContent='جارٍ تجهيز الصورة...';
+    const bmp=await createImageBitmap(file);
+    const sc=Math.min(1,1600/Math.max(bmp.width,bmp.height));
+    const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*sc);cv.height=Math.round(bmp.height*sc);
+    cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
+    msg.textContent='جارٍ تحميل أداة القراءة (أول مرة فقط)...';
+    await loadTes();
+    msg.textContent='جارٍ قراءة النص من العلبة...';
+    const r=await Tesseract.recognize(cv,'eng+ara');
+    showCands(r.data.text);
+  }catch(err){msg.textContent='تعذّرت قراءة الصورة. تأكد من الاتصال بالإنترنت أو اكتب الاسم يدويًا.'}
+  e.target.value='';
+};
+render();
+</script>
+</body>
+</html>
